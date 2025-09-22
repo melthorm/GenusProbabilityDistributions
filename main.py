@@ -1,10 +1,16 @@
 import NormalTorusSampler
 import GenusNSampler
 import TorusNoIntersectSampler
+import TorusSeamVonMisesSampler
 import numpy as np
 import torch
 import sys
 
+
+""" WEIRD AH"""
+sampler = TorusSeamVonMisesSampler.TorusSeamVonMisesSampler(mu_top=0.0, kappa_top=8.0,
+                                   mu_bottom=0.0, kappa_bottom=2.0)
+sampler.plot(n_samples=1000)
 
 
 """ NORMAL TORUS """
