@@ -1,13 +1,8 @@
-from normal_sampler import NormalSampler
-from beta_sampler import BetaSampler
-from mixture_sampler import MixtureSampler
-import coupling_layer
-from coupling_layer import CouplingLayer
-import matplotlib.pyplot as plt
-
-import maps
 import torch
-
+import matplotlib.pyplot as plt
+import maps
+import flow
+from mixture_sampler import MixtureSampler
 
 if __name__ == "__main__":
     n = 2000
@@ -15,72 +10,46 @@ if __name__ == "__main__":
     sigma = 0.3
     a, b = 5.0, 2.0
 
-    normal_sampler = NormalSampler(sigma)
-    beta_sampler = BetaSampler(a, b)
+    # Create the mixture sampler and sample points
     mixture_sampler = MixtureSampler(alpha, sigma, a, b)
+    samples_mixture = mixture_sampler.sample(n)  # shape (N,2)
 
-    samples_normal = normal_sampler.sample(n)
-    samples_beta = beta_sampler.sample(n)
-    samples_mixture = mixture_sampler.sample(n)
-        
-    """
-    print("First 10 Truncated Gaussian samples:\n", samples_normal[:10])
-    print("First 10 Beta samples:\n", samples_beta[:10])
-    print("First 10 Mixture samples:\n", samples_mixture[:10])
-    """
+    # Create a Flow with 4 coupling layers
+    my_flow = flow.Flow(num_layers=4, hidden_dim=32)
 
-    normal_sampler.plot(n)
-    beta_sampler.plot(n)
-    mixture_sampler.plot(n)
+    # Forward through the flow
+    x_out, logdet = my_flow.forward(samples_mixture)
 
-    # Map mixture samples to R2
-    mixture_R2 = maps.disk_to_R2(samples_mixture)
+    # Apply inverse using the Flow method
+    x_recovered = my_flow.inverse(x_out)
 
-    # Apply coupling layer
-    layer = CouplingLayer()
-    mixture_transformed_R2 = coupling_layer.f(mixture_R2, layer)
+    # Convert to numpy for plotting
+    samples_mixture_np = samples_mixture.numpy()
+    x_out_np = x_out.detach().numpy()
+    x_recovered_np = x_recovered.detach().numpy()
 
-    # Map back to disk (warped)
-    mixture_transformed_disk = maps.R2_to_disk(mixture_transformed_R2)
+    # Plot original, transformed, and inverse-recovered
+    fig, axs = plt.subplots(1,3, figsize=(18,6))
 
-    # Apply inverse to transformed R2 points
-    mixture_recovered_R2 = layer.inverse(mixture_transformed_R2)
-    mixture_recovered_disk = maps.R2_to_disk(mixture_recovered_R2)
-    mixture_recovered_disk_np = mixture_recovered_disk.detach().numpy()
-
-    # Detach and convert to numpy for plotting
-    mixture_transformed_R2_np = mixture_transformed_R2.detach().numpy()
-    mixture_transformed_disk_np = mixture_transformed_disk.detach().numpy()
-
-    # Plot original, transformed, back-to-disk, and inverse-recovered
-    fig, axs = plt.subplots(1,4, figsize=(24,6))
-
-    # Original mixture samples
-    axs[0].scatter(samples_mixture[:,0], samples_mixture[:,1], s=5, alpha=0.5)
+    axs[0].scatter(samples_mixture_np[:,0], samples_mixture_np[:,1], s=5, alpha=0.5)
     circle0 = plt.Circle((0,0),1.0,color='gray',alpha=0.1)
     axs[0].add_patch(circle0)
     axs[0].set_title("Original Mixture Samples")
     axs[0].set_aspect('equal')
 
-    # Transformed in R2
-    axs[1].scatter(mixture_transformed_R2_np[:,0], mixture_transformed_R2_np[:,1], s=5, alpha=0.5)
-    axs[1].set_title("Coupling Layer Output in R2")
+    axs[1].scatter(x_out_np[:,0], x_out_np[:,1], s=5, alpha=0.5)
+    circle1 = plt.Circle((0,0),1.0,color='gray',alpha=0.1)
+    axs[1].add_patch(circle1)
+    axs[1].set_title("Flow Transformed Disk Samples")
     axs[1].set_aspect('equal')
 
-    # Back to disk (warped)
-    axs[2].scatter(mixture_transformed_disk_np[:,0], mixture_transformed_disk_np[:,1], s=5, alpha=0.5)
+    axs[2].scatter(x_recovered_np[:,0], x_recovered_np[:,1], s=5, alpha=0.5)
     circle2 = plt.Circle((0,0),1.0,color='gray',alpha=0.1)
     axs[2].add_patch(circle2)
-    axs[2].set_title("Back to Disk")
+    axs[2].set_title("Inverse-Recovered Disk Samples")
     axs[2].set_aspect('equal')
-
-    # Inverse recovered disk
-    axs[3].scatter(mixture_recovered_disk_np[:,0], mixture_recovered_disk_np[:,1], s=5, alpha=0.5)
-    circle3 = plt.Circle((0,0),1.0,color='gray',alpha=0.1)
-    axs[3].add_patch(circle3)
-    axs[3].set_title("Inverse Recovered Disk")
-    axs[3].set_aspect('equal')
 
     plt.show()
 
+    print("Sample log-determinants (first 10):", logdet[:10])
 
