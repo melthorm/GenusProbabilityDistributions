@@ -10,20 +10,21 @@ class CouplingLayer(nn.Module):
     The column to transform is determined by 'index' (0 or 1)
     """
 
-    def __init__(self, hidden_dim: int = 32):
+    def __init__(self, hidden_dim: int = 32, device=None):
         super().__init__()
+        self.device = device or torch.device('cpu')
         # s(x) and t(x) are small MLPs mapping 1D -> 1D
         self.s_net = nn.Sequential(
             nn.Linear(1, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1),
             nn.Tanh()
-        )
+        ).to(self.device)
         self.t_net = nn.Sequential(
             nn.Linear(1, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1)
-        )
+        ).to(self.device)
 
     def forward(self, x: torch.Tensor, index: int = 1):
         """
@@ -31,6 +32,7 @@ class CouplingLayer(nn.Module):
         index: 0 or 1, the column to transform (y_j)
         Returns y, log_det_J
         """
+        x = x.to(self.device)
         x_i, x_j = x[:, 1-index:2-index], x[:, index:index+1]  # i is conditioned, j is transformed
         s = self.s_net(x_i)
         t = self.t_net(x_i)
@@ -50,6 +52,7 @@ class CouplingLayer(nn.Module):
         index: column transformed in forward
         Returns x
         """
+        y = y.to(self.device)
         y_i, y_j = y[:, 1-index:2-index], y[:, index:index+1]
         s = self.s_net(y_i)
         t = self.t_net(y_i)

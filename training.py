@@ -16,7 +16,7 @@ b = 2.0
 
 alpha2 = 0.5
 sigma2 = 0.2
-a2 = 100.0
+a2 = 50.0
 b2 = 2.0
 
 
@@ -24,11 +24,11 @@ base = MixtureSampler(alpha, sigma, a, b)
 target = MixtureSampler(alpha2, sigma2, a2, b2)
 
 # Flow model
-flow = Flow(num_layers=4, hidden_dim=32).to(device)
+flow = Flow(num_layers=12, hidden_dim=64).to(device)
 
 # Optimizer
-optimizer = torch.optim.Adam(flow.parameters(), lr=1e-1, weight_decay=0)
-print(flow.parameters())
+optimizer = torch.optim.Adam(flow.parameters(), lr=1e-3, weight_decay=0)
+
 # Training parameters
 n_samples = 512
 num_steps = 5000
@@ -38,12 +38,11 @@ for step in range(1, num_steps + 1):
     optimizer.zero_grad()
     loss = flow_loss(flow, base, target, n_samples)
     loss.backward()
-    if (step % 100 == 0):
-        print(sum(p.grad.data.norm(2).item()**2 for p in flow.parameters())**0.5)
+
     optimizer.step()
 
     if step % 100 == 0:
-        print()
+        print(f"Gradients Sum = {sum(p.grad.data.norm(2).item()**2 for p in flow.parameters())**0.5}")
         print(f"Step {step}, KL Loss: {loss.item():.6f}")
 
 

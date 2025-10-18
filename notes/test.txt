@@ -1,0 +1,12 @@
+def loss():
+
+        approximate pdf on genus g surface, modeled on disk
+        spit out real valued number, kayle divergence between 
+        the push forward of the model we're training and the
+        model that we want to approximate.
+
+        input n (how many samples from bas distribution like mixture distribution),
+            model1, include parameters for base distribution like alpha sigma,
+
+        small function to evaluate pdf
+        when making kayle divergence use pdf
