@@ -23,6 +23,14 @@ class MixtureSampler:
         norms = samples.norm(dim=1, keepdim=True)
         return samples / norms
 
+
+    def log_prob(self, z):
+        log_N = self.normal_sampler.log_prob(z)  # (n,)
+        log_B = self.beta_sampler.log_prob(z)    # (n,)
+        # mixture log-prob
+        log_mix = torch.log(self.alpha * torch.exp(log_N) + (1 - self.alpha) * torch.exp(log_B))
+        return log_mix
+
     def plot(self, n: int = 1000):
         samples = self.sample(n)
         fig, ax = plt.subplots()

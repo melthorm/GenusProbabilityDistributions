@@ -1,3 +1,4 @@
+# beta_sampler.py
 import torch
 import matplotlib.pyplot as plt
 
@@ -7,7 +8,7 @@ class BetaSampler:
         self.b = b
 
     def sample(self, n: int):
-        # Samples from the beta distribution with a b parameters
+        # Samples from the beta distribution with parameters a, b
         r = torch.distributions.Beta(self.a, self.b).sample((n,))
 
         # Samples theta uniformly
@@ -20,6 +21,14 @@ class BetaSampler:
         samples = self.sample(n)
         norms = samples.norm(dim=1, keepdim=True)
         return samples / norms  # project to unit circle
+
+    def log_prob(self, z):
+        r = torch.norm(z, dim=1)
+        # compute log Beta function using lgamma
+        log_B = torch.lgamma(torch.tensor(self.a)) + torch.lgamma(torch.tensor(self.b)) - torch.lgamma(torch.tensor(self.a + self.b))
+        log_pr = (self.a - 1) * torch.log(r) + (self.b - 1) * torch.log(1 - r) - log_B
+        log_theta = -torch.log(torch.tensor(2 * torch.pi))
+        return log_pr + log_theta
 
     def plot(self, n: int = 1000):
         samples = self.sample(n)

@@ -57,37 +57,25 @@ class Flow(nn.Module):
         x_recovered, _ = maps.R2_to_disk(y)
         return x_recovered
 
-        
-    def sample(self, n_samples: int, device="cpu", index_cycle=None, scale=2.0):
-        """
-        Generate new samples from the learned flow using a scaled base distribution.
 
-        Steps:
-        1. Sample from standard normal in R².
-        2. Scale to roughly match typical R² magnitude of forward-mapped disk points.
-        3. Apply inverse coupling layers in reverse order.
-        4. Map back to disk.
 
-        Args:
-            n_samples: number of points to generate
-            device: torch device
-            index_cycle: optional list of column indices for coupling layers
-            scale: scaling factor for base normal
+def flow_loss(flow, base, target, n):
+    # Sample from base
+    z = base.sample(n)           # (n, 2)
+    log_pz = base.log_prob(z)    # (n,)
 
-        Returns:
-            x_disk: (n_samples, 2) tensor in disk space
-        """
-        # Step 1 & 2: sample and scale
-        z_base = torch.randn(n_samples, 2, device=device) * scale
+    # Pushforward through flow
+    x_out, logDet = flow.forward(z)   # (n,2), (n,)
 
-        # Step 3: inverse through coupling layers
-        x_disk = z_base
-        for i, layer in reversed(list(enumerate(self.layers))):
-            index = index_cycle[i] if index_cycle is not None else i % 2
-            x_disk = layer.inverse(x_disk, index=index)
+    # Compute pushforward log-density
+    log_q = log_pz - logDet
 
-        # Step 4: final map to disk
-        x_disk, _ = maps.R2_to_disk(x_disk)
-        return x_disk
+    # Evaluate target log-density at pushed points
+    log_target = target.log_prob(x_out).detach()
+
+    # KL divergence: E_q[log q - log target] ≈ mean over samples
+    kl = torch.mean(log_q - log_target)
+    return kl
+
 
 

@@ -1,68 +1,77 @@
+# training.py
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import flow
+from flow import Flow, flow_loss  # flow class and flow_loss function
 from mixture_sampler import MixtureSampler
 
-# Hyperparameters
-n_samples = 1000
-num_layers, hidden_dim = 12, 64
-lr = 1e-3
-num_epochs = 1000
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# Device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Target distribution
-alpha, sigma, a, b = 0.5, 0.3, 5.0, 2.0
-sampler = MixtureSampler(alpha, sigma, a, b)
-data = sampler.sample(n_samples).to(device)
+# Base and target distributions
+alpha = 0.5
+sigma = 0.2
+a = 2.0
+b = 2.0
 
-# Flow
-my_flow = flow.Flow(num_layers=num_layers, hidden_dim=hidden_dim).to(device)
-optimizer = optim.Adam(my_flow.parameters(), lr=lr)
+alpha2 = 0.5
+sigma2 = 0.2
+a2 = 100.0
+b2 = 2.0
 
-def base_log_prob(z):
-    return -0.5 * torch.sum(z**2, dim=1) - z.shape[1]/2 * torch.log(torch.tensor(2*torch.pi))
 
-# Training
-for epoch in range(num_epochs):
+base = MixtureSampler(alpha, sigma, a, b)
+target = MixtureSampler(alpha2, sigma2, a2, b2)
+
+# Flow model
+flow = Flow(num_layers=4, hidden_dim=32).to(device)
+
+# Optimizer
+optimizer = torch.optim.Adam(flow.parameters(), lr=1e-1, weight_decay=0)
+print(flow.parameters())
+# Training parameters
+n_samples = 512
+num_steps = 5000
+
+# Training loop
+for step in range(1, num_steps + 1):
     optimizer.zero_grad()
-    z, logdet = my_flow.forward(data)
-    log_prob = base_log_prob(z) + logdet
-    loss = -log_prob.mean()
+    loss = flow_loss(flow, base, target, n_samples)
     loss.backward()
+    if (step % 100 == 0):
+        print(sum(p.grad.data.norm(2).item()**2 for p in flow.parameters())**0.5)
     optimizer.step()
 
-    # Visualization every 200 epochs
-    if epoch % 200 == 0:
-        print(f"Epoch {epoch}: NLL = {loss.item():.4f}")
-        with torch.no_grad():
-            # Transform original data through flow
-            flow_output, _ = my_flow.forward(data)
-            # sample n_samples from flow 
-            learned_samples = my_flow.sample(n_samples, device=device)
+    if step % 100 == 0:
+        print()
+        print(f"Step {step}, KL Loss: {loss.item():.6f}")
 
-        # Convert to numpy
-        data_np = data.cpu().numpy()
-        flow_np = flow_output.cpu().numpy()
-        learned_np = learned_samples.cpu().numpy()
 
-        # Plot
-        fig, axs = plt.subplots(1,3, figsize=(18,6))
-        axs[0].scatter(data_np[:,0], data_np[:,1], s=5, alpha=0.5)
-        axs[0].add_patch(plt.Circle((0,0),1.0,color='gray',alpha=0.1))
-        axs[0].set_aspect('equal')
-        axs[0].set_title("Original Mixture Samples")
+# --- Check training by sampling from the flow ---
+flow.eval()
+with torch.no_grad():
+    # sample from base
+    z = base.sample(1000).to(device)
+    x_flow, _ = flow.forward(z)
+    x_flow = x_flow.cpu()
 
-        axs[1].scatter(flow_np[:,0], flow_np[:,1], s=5, alpha=0.5)
-        axs[1].add_patch(plt.Circle((0,0),1.0,color='gray',alpha=0.1))
-        axs[1].set_aspect('equal')
-        axs[1].set_title("Flow Output of Original Samples")
+    target_samples = target.sample(1000)
 
-        axs[2].scatter(learned_np[:,0], learned_np[:,1], s=5, alpha=0.5)
-        axs[2].add_patch(plt.Circle((0,0),1.0,color='gray',alpha=0.1))
-        axs[2].set_aspect('equal')
-        axs[2].set_title("Samples from Learned Flow")
+    # create figure with side-by-side subplots
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
-        plt.show()
+    for ax, samples, title in zip(axes, [target_samples, x_flow], ["Target Samples", "Flow Pushforward"]):
+        # plot unit disk
+        circle = plt.Circle((0, 0), 1.0, color='gray', alpha=0.1)
+        ax.add_patch(circle)
+        # scatter samples
+        ax.scatter(samples[:, 0], samples[:, 1], s=5, alpha=0.5)
+        ax.set_aspect('equal')
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+        ax.set_title(title)
+
+    plt.suptitle("Comparison of Base and Flow Pushforward on Unit Disk")
+    plt.show()
+
 
