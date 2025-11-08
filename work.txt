@@ -1,0 +1,54 @@
+find diffeomorphism (mapping) between P_{2n} (the base 2n polygonal fundamental domain of \Sigma_{n} in the hyperbolic plane in \mathbb{R}^{2,1}) and the unit disk D^2 \subset \mathbb{R}^2.
+of base 2
+
+
+
+P_{2n} is the n gon on the paraboloid in R^3
+
+We want to relate that to unit disk 
+
+Find boudnrarys by locating vertices and 'curves' boounding them
+
+Thenf ind mapping from interior all points to D^2
+
+D^2 boundrary is split into number of vertices equally by n for n-gon
+
+Boundrary maps to boundrary trivially
+
+Interior mappign is based on distance from boundrary
+
+calculate shortest distance to boundrary (orthogonal distance, call it l_1), call the point on boundrary that creates the shortest distance P_1
+
+P_1 maps to boundrary of D^2 trivially
+Go along the vector mapping P_1 to origin of unit disk, by a distance based on l_1, calculate l_1 based on distance from P_1 to origin on the paraboloid in R^3 (hyperboloid plane on \mathbb{2, 1}). Call this new distance l_2
+
+Therefore full mapping is
+
+f: maps from boundrary of hyperbolic plane to boundrary of D^2
+
+P_{2n} = f(P_1) - f(P_1) * l_2
+
+Inverse version is just mapping boundrary to boundrary but reversed
+
+use sinc to represent hyperbolic plane
+
+
+
+function that takes fundamental domain and patches it 
+
+fundamental group of genus g surface: fundamental group acts on the poincare disk by the deck transformation
+
+deck transformations have a finite number of generators, for genus g there are two g generators
+
+all deck transformations are compositions of two g generators
+
+Find the two g generators, how to represent generators in code as maps on the hyperbolic plane
+
+n gon represents fundamental domain which has particular size
+generators depend on shape chosen for fundamental domain
+
+for genus g surface, it's 4g gon
+for the 2g generators, for each side, 
+
+pick generator, that generator is associated to one of the sides and the other corresponding one so each generator represents 2 sides
+

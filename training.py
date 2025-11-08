@@ -33,8 +33,19 @@ optimizer = torch.optim.Adam(flow.parameters(), lr=1e-3, weight_decay=0)
 n_samples = 512
 num_steps = 5000
 
+# default difference
+z = base.sample(n_samples).to(flow.device)           # (n, 2)
+log_pz = base.log_prob(z)    # (n,)
+
+# Evaluate target log-density at pushed points
+log_target = target.log_prob(z)
+
+# KL divergence: E_q[log q - log target] ≈ mean over samples
+kl = torch.mean(log_pz - log_target)
+print(f"Starting KL divergence: {kl.item():.6f}")
+
 # Training loop
-for step in range(1, num_steps + 1):
+for step in range(0, num_steps + 1):
     optimizer.zero_grad()
     loss = flow_loss(flow, base, target, n_samples)
     loss.backward()
