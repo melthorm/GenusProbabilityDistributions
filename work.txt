@@ -52,3 +52,14 @@ for the 2g generators, for each side,
 
 pick generator, that generator is associated to one of the sides and the other corresponding one so each generator represents 2 sides
 
+
+
+map entirity of center 4g gon to other 4g gons
+
+
+
+Talk Title: Tiling the Poincare disk using a 4g gon
+
+
+100 words
+Talk Abstract: The Poincare disk is a representation of the hyperbolic plane as a unit disk. A 4g gon embedded in the Poincare disk regardless of its radius, can define generators that when applied are able to tile or 'reach' every point in the poincare disk. We can achieve this via a mobius transformation.
