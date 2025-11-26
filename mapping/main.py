@@ -1,87 +1,60 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from generators import HyperbolicPolygon
+
 def main():
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from generators import HyperbolicPolygon
-
-
-
-    n = 4  # vertices
-    r = 0.5  # radius inside unit disk
-    angles = np.linspace(0, 2*np.pi, n, endpoint=False)
-    vertices = (r * np.exp(1j * angles)).tolist()
-
-    side_pairs = [
-        ((vertices[i], vertices[(i+1)%n]), (vertices[(i+4)%n], vertices[(i+5)%n]))
-        for i in range(n//2)
-    ]
-
-    # Create polygon
-    poly = HyperbolicPolygon(vertices, side_pairs)
-
-    # Compute interior points for side-pairs
+    p, q = 8, 8
+    poly = HyperbolicPolygon(p=p, q=q)
     poly.compute_interior_points()
-
-    # Compute all generators
     poly.compute_all_generators()
 
-    # Apply all generators and inverses to polygon vertices for visualization
-    transformed_polys = []
-    for G in poly.generators:
-        for H in [G, np.linalg.inv(G)]:
-            transformed_polys.append(poly.apply_generator_to_polygon(H))
+    # Starting point strictly inside fundamental polygon (e.g., polygon center)
+    z = np.mean(poly.vertices)
+
+    # Define a sequence of generators to apply (indices of generators)
+    # Positive index = generator, negative index = inverse
+    sequence = [2, 1, 1, 2, 2, 3]  
+
+    points = [z]  # record trajectory
+    for idx in sequence:
+        if idx >= 0:
+            G = poly.generators[idx]
+        else:
+            G = poly.generators_inv[-idx]
+        z = poly.apply_generator(z, G)
+        points.append(z)
+
+    points = np.array(points)
 
 
 
-    # Visualize polygon and all transformations
-    poly.visualize(transformed_polygons=transformed_polys, n_points=150)
 
-    transformed2_polys = []
-    for G in poly.generators:
-        for H in [G, np.linalg.inv(G)]:
-            for vs in transformed_polys:
-                transformed2_polys.append([poly.apply_generator(z, H) for z in vs])
+    # Store layers separately
+    layers = []
+    layers.append([poly.vertices])  # layer 0: fundamental polygon
 
+    n_layers = 2  # number of layers to generate
+    for layer_index in range(1, n_layers+1):
+        prev_layer = layers[-1]
+        next_layer = []
+        for G in poly.generators:
+            for H in [G, np.linalg.inv(G)]:
+                for vs in prev_layer:
+                    next_layer.append([poly.apply_generator(z, H) for z in vs])
+        layers.append(next_layer)
 
-    poly.visualize(transformed_polygons=transformed2_polys, n_points=150)
+    # Visualize each layer individually
+    for i, layer in enumerate(layers):
+        print(f"Visualizing layer {i}, {len(layer)} polygons")
+        poly.visualize(transformed_polygons=layer, n_points=150)
+        plt.show();
 
+    poly.visualize(transformed_polygons=layer, n_points=150)
 
-    transformed3_polys = []
-    for G in poly.generators:
-        for H in [G, np.linalg.inv(G)]:
-            for vs in transformed2_polys:
-                transformed3_polys.append([poly.apply_generator(z, H) for z in vs])
-
-
-    poly.visualize(transformed_polygons=transformed3_polys, n_points=150)
-    
-    # Sample points strictly inside the polygon using random barycentric interpolation
-    n_samples = 50
-    sampled_points = []
-    verts = np.array(vertices)
-    N = len(verts)
-    for _ in range(n_samples):
-        # Pick two consecutive vertices to form a triangle with polygon center
-        center = np.mean(verts)
-        i = np.random.randint(N)
-        v0 = verts[i]
-        v1 = verts[(i+1)%N]
-        # random barycentric coordinates inside the triangle
-        s, t = np.random.uniform(0,1,2)
-        if s + t > 1:
-            s, t = 1-s, 1-t
-        z = v0 + s*(v1 - v0) + t*(center - v0)
-        sampled_points.append(z)
-    sampled_points = np.array(sampled_points)
-
-    # Apply the first generator to sampled points
-    G0 = poly.generators[0]
-    transformed_points = np.array([poly.apply_generator(z, G0) for z in sampled_points])
-    plt.scatter(sampled_points.real, sampled_points.imag, color='orange', s=30, alpha=0.8, label='Sampled points')
-    plt.scatter(transformed_points.real, transformed_points.imag, color='green', s=30, alpha=0.8, label='Transformed points')
-    plt.legend()
-    plt.title("Polygon, generator images, sampled points inside, and their images")
+    # Overlay trajectory
+    plt.plot(points.real, points.imag, 'o-', color='orange', markersize=6, lw=2)
+    plt.title("Trajectory of a point under generator sequence")
     plt.show()
-
 
 if __name__ == "__main__":
     main()
