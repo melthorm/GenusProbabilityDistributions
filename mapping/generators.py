@@ -86,37 +86,49 @@ class HyperbolicPolygon:
             self.interior_points.append((m, m_prime))
 
     def compute_generator(self, side_index: int):
+        """
+        Compute the SU(1,1) Möbius generator for the side-pair using a proper three-point mapping:
+        z1 -> w1, z2 -> w2, m -> m_prime.
+        Returns:
+            M: 2x2 SU(1,1) matrix
+            M_inv: inverse matrix
+        """
         (z1, z2), (w1, w2) = self.side_pairs[side_index]
         m, m_prime = self.interior_points[side_index]
 
+        # Map z1 -> 0 using Cayley transform
         f = lambda z: (z - z1) / (1 - np.conj(z1) * z)
         f_inv = lambda z: (z + z1) / (1 + np.conj(z1) * z)
         z2p = f(z2)
         mp = f(m)
 
-        g = lambda w: (w - w2) / (1 - np.conj(w2) * w)
-        g_inv = lambda w: (w + w2) / (1 + np.conj(w2) * w)
-        w1p = g(w1)
+        # Map w1 -> 0
+        g = lambda w: (w - w1) / (1 - np.conj(w1) * w)
+        g_inv = lambda w: (w + w1) / (1 + np.conj(w1) * w)
+        w2p = g(w2)
         mp_prime = g(m_prime)
 
-        alpha = w1p / z2p
+        # Compute rotation to map z2p -> w2p
+        alpha = w2p / z2p
         R = lambda z: alpha * z
 
+        # Full Möbius map: G(z) = g_inv(R(f(z)))
         G = lambda z: g_inv(R(f(z)))
 
-        a = 0.8
-        b = G(0) * np.conj(a)
-        norm = np.sqrt(np.abs(a)**2 - np.abs(b)**2)
-        a /= norm
-        b /= norm
-
+        # Compute SU(1,1) matrix from G
+        # Solve G(0) = b / conj(a), G'(0) = a^2 - |b|^2
+        b = G(0)
+        a = np.sqrt(1 + np.abs(b)**2)
+        # normalize to enforce |a|^2 - |b|^2 = 1
         M = np.array([[a, b], [np.conj(b), np.conj(a)]], dtype=complex)
         M_inv = np.array([[np.conj(a), -b], [-np.conj(b), a]], dtype=complex)
 
-        if np.sign(np.cross([z2.real - z1.real, z2.imag - z1.imag],
-                            [m.real - z1.real, m.imag - z1.imag])) != \
-           np.sign(np.cross([w1.real - w2.real, w1.imag - w2.imag],
-                            [m_prime.real - w2.real, m_prime.imag - w2.imag])):
+        # Optional orientation check
+        v1 = np.array([z2.real - z1.real, z2.imag - z1.imag])
+        v2 = np.array([m.real - z1.real, m.imag - z1.imag])
+        wv1 = np.array([w1.real - w2.real, w1.imag - w2.imag])
+        wv2 = np.array([m_prime.real - w2.real, m_prime.imag - w2.imag])
+        if np.sign(np.cross(v1, v2)) != np.sign(np.cross(wv1, wv2)):
             M, M_inv = M_inv, M
 
         return M, M_inv
