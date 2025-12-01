@@ -1,0 +1,102 @@
+class GenusNTorusSampler:
+    def __init__(self, n, R=2.0, r=0.7, x_spacing=None, intersect_mode="both"):
+        """
+        Genus-n torus sampler along x-axis.
+
+        Args:
+            n (int): number of tori (genus)
+            R, r (float): torus radii
+            x_spacing (float or list): spacing along x for each torus
+            intersect_mode (str or list): "left", "right", or "both"; can be list of length n
+        """
+        self.n = n
+        self.R = R
+        self.r = r
+        self.x_offsets = np.arange(n) * (x_spacing if x_spacing else 2*R + 2*r)
+        
+        # Make intersect_mode per torus
+        if isinstance(intersect_mode, str):
+            self.intersect_mode = [intersect_mode] * n
+        else:
+            assert len(intersect_mode) == n
+            self.intersect_mode = intersect_mode
+
+        # Create torus samplers
+        self.tori = [
+            TorusNoIntersectSampler(R=R, r=r, x_offset=self.x_offsets[i])
+            for i in range(n)
+        ]
+
+    def sample_points(self, n_samples_per_torus=1000):
+        """
+        Sample points for each torus avoiding intersections with neighbors
+        according to intersect_mode.
+        """
+        all_points = []
+        for i in range(self.n):
+            left_offset = self.x_offsets[i-1] if i > 0 else None
+            right_offset = self.x_offsets[i+1] if i < self.n-1 else None
+
+            # Wrap TorusNoIntersectSampler logic
+            sampler = self.tori[i]
+            samples_gotten = 0
+            angles = torch.zeros(n_samples_per_torus, 2, dtype=torch.float64)
+
+            while samples_gotten < n_samples_per_torus:
+                theta = sampler.dist1.sample((n_samples_per_torus,))
+                phi = sampler.dist2.sample((n_samples_per_torus,))
+
+                mask = torch.ones_like(theta, dtype=torch.bool)
+
+                mode = self.intersect_mode[i]
+
+                if mode in ("left", "both") and left_offset is not None:
+                    mask &= ~torus_intersection_mask(theta, phi, R=self.R, r=self.r, x_offset=left_offset)
+                if mode in ("right", "both") and right_offset is not None:
+                    mask &= ~torus_intersection_mask(theta, phi, R=self.R, r=self.r, x_offset=right_offset)
+
+                theta, phi = theta[mask], phi[mask]
+                num_to_add = min(theta.numel(), n_samples_per_torus - samples_gotten)
+                if num_to_add > 0:
+                    angles[samples_gotten:samples_gotten+num_to_add] = torch.stack(
+                        (theta[:num_to_add], phi[:num_to_add]), dim=1
+                    )
+                    samples_gotten += num_to_add
+
+            # Convert to points
+            theta, phi = angles[:,0], angles[:,1]
+            x = (self.R + self.r*torch.cos(theta)) * torch.cos(phi) + self.x_offsets[i]
+            y = (self.R + self.r*torch.cos(theta)) * torch.sin(phi)
+            z = self.r*torch.sin(theta)
+
+            all_points.append(torch.stack([x,y,z], dim=1))
+
+        return all_points
+
+    def plot_points(self, n_samples_per_torus=500, s=5, show_surface=True):
+        """
+        Plot all tori along x-axis with sampled points.
+        """
+        import matplotlib.pyplot as plt
+        pts_list = self.sample_points(n_samples_per_torus)
+        fig = plt.figure(figsize=(10,6))
+        ax = fig.add_subplot(111, projection="3d")
+
+        u = np.linspace(0, 2*np.pi, 60)
+        v = np.linspace(0, 2*np.pi, 30)
+        U, V = np.meshgrid(u, v)
+
+        for i, pts in enumerate(pts_list):
+            x_off = self.x_offsets[i]
+            if show_surface:
+                X = (self.R + self.r*np.cos(V)) * np.cos(U) + x_off
+                Y = (self.R + self.r*np.cos(V)) * np.sin(U)
+                Z = self.r * np.sin(V)
+                ax.plot_surface(X, Y, Z, color="lightblue", alpha=0.3, rstride=2, cstride=2, linewidth=0)
+            pts_np = pts.cpu().numpy()
+            ax.scatter(pts_np[:,0], pts_np[:,1], pts_np[:,2], s=s, c="red", alpha=0.7)
+
+        ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.set_zlabel("Z")
+        ax.set_title(f"Genus-{self.n} Torus Samples")
+        plt.show()
+

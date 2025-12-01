@@ -74,36 +74,40 @@ class HyperbolicPolygon:
     def visualize(self, transformed_polygons=None, n_points=100):
         plt.figure(figsize=(6,6))
         ax = plt.gca()
-        plt.gca().add_artist(plt.Circle((0,0),1,color='k',fill=False,lw=1))
+        circle = plt.Circle((0,0), 1, color='k', fill=False, lw=1)
+        ax.add_artist(circle)
 
-        def plot_hyperbolic_polygon(ax, verts, n_points=100, color='b', lw=2):
+        def plot_polygon(verts, color='b', lw=2):
             N = len(verts)
             for i in range(N):
-                z1, z2 = verts[i], verts[(i+1)%N]
+                z1 = verts[i]
+                z2 = verts[(i+1)%N]
                 c = self.compute_circle_center(z1, z2)
                 if c is None:
                     x = [z1.real, z2.real]
                     y = [z1.imag, z2.imag]
                 else:
                     r = abs(z1 - c)
-                    th1, th2 = np.angle(z1 - c), np.angle(z2 - c)
-                    dth = th2 - th1
-                    if dth < -np.pi: dth += 2*np.pi
-                    if dth > np.pi: dth -= 2*np.pi
-                    thetas = th1 + np.linspace(0,1,n_points)*dth
+                    th1 = np.angle(z1 - c)
+                    th2 = np.angle(z2 - c)
+                    d = th2 - th1
+                    if d < -np.pi:
+                        d += 2*np.pi
+                    elif d > np.pi:
+                        d -= 2*np.pi
+                    thetas = th1 + np.linspace(0,1,n_points)*d
                     x = c.real + r*np.cos(thetas)
                     y = c.imag + r*np.sin(thetas)
                 ax.plot(x, y, color=color, lw=lw)
 
-        plot_hyperbolic_polygon(ax, self.vertices, color='b', lw=5)
+        plot_polygon(self.vertices, color='b', lw=5)
         if transformed_polygons:
             for poly in transformed_polygons:
-                plot_hyperbolic_polygon(ax, poly, color='r', lw=1)
+                plot_polygon(poly, color='r', lw=1)
 
         ax.set_aspect('equal')
         ax.set_xlim(-1.05,1.05)
         ax.set_ylim(-1.05,1.05)
-        plt.show()
 
 
 class HyperbolicGenerators:
@@ -142,16 +146,29 @@ class HyperbolicGenerators:
         a /= norm
         b /= norm
         M = np.array([[a, b], [np.conj(b), np.conj(a)]], complex)
+
+        s1 = np.cross([z2.real - z1.real, z2.imag - z1.imag],
+                      [m.real - z1.real,   m.imag - z1.imag])
+        s2 = np.cross([w1.real - w2.real, w1.imag - w2.imag],
+                      [m2.real - w2.real, m2.imag - w2.imag])
+
+        #if np.sign(s1) != np.sign(s2):
+        #    M = np.array([[np.conj(a), -b], [-np.conj(b), a]], complex)
+
         return M
 
     def _compute_all(self):
-        return [self.compute_one(i) for i in range(len(self.poly.side_pairs))]
+        out = []
+        for i in range(len(self.poly.side_pairs)):
+            out.append(self.compute_one(i))
+        return out
 
     def apply(self, z, M):
         return self.apply_matrix(z, M)
 
     def apply_to_polygon(self, M):
         return [self.apply_matrix(z, M) for z in self.poly.vertices]
+
 
     def apply_word_to_polygon(self, word):
         verts = self.poly.vertices
@@ -162,52 +179,4 @@ class HyperbolicGenerators:
                 M = np.linalg.inv(self.generators[-idx])
             verts = [self.apply_matrix(z, M) for z in verts]
         return verts
-
-
-# --- Checks ---
-def check_generators(poly, gens, tol=1e-12):
-    print("=== Checking individual generators ===")
-    for i, M in enumerate(gens.generators):
-        verts = poly.vertices
-        verts_back = [gens.apply(z, np.linalg.inv(M)) for z in [gens.apply(v, M) for v in verts]]
-        max_err = max(abs(vb - v) for vb, v in zip(verts_back, verts))
-        print(f"Generator {i}: max deviation after M then M^-1 = {max_err}")
-        if max_err > tol:
-            print(f"  WARNING: Generator {i} may be incorrect.")
-
-def check_combined_sequence(poly, gens, sequence, tol=1e-12):
-    print("=== Checking combined sequence ===")
-    for i, start_vert in enumerate(poly.vertices):
-        z = start_vert
-        for idx in sequence:
-            if isinstance(idx, tuple) and idx[0] == 'inv':
-                M = np.linalg.inv(gens.generators[idx[1]])
-            else:
-                M = gens.generators[idx]
-            z = gens.apply(z, M)
-        err = abs(z - start_vert)
-        print(f"Vertex {i}: |end-start| = {err}")
-        if err > tol:
-            print(f"  WARNING: Sequence deviates at vertex {i}")
-
-
-if __name__ == "__main__":
-    p, q = 8, 8
-    poly = HyperbolicPolygon(p, q)
-    poly.compute_interior_points()
-    gens = HyperbolicGenerators(poly)
-
-    # example sequences
-    seq_a1 = [6,3,0]
-    seq_b1 = [5,2,7]
-    seq_a2 = [2,7,4]
-    seq_b2 = [1,6,3]
-
-    # a1 b1 a1^-1 b1^-1 a2 b2 a2^-1 b2^-1
-    combined_seq = seq_a1 + seq_b1 + [('inv', i) for i in reversed(seq_a1)] + [('inv', i) for i in reversed(seq_b1)] + \
-                   seq_a2 + seq_b2 + [('inv', i) for i in reversed(seq_a2)] + [('inv', i) for i in reversed(seq_b2)]
-
-    # run checks
-    check_generators(poly, gens)
-    check_combined_sequence(poly, gens, combined_seq)
 
