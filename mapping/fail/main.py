@@ -3,86 +3,213 @@ import matplotlib.pyplot as plt
 from generators import HyperbolicPolygon, HyperbolicGenerators
 
 
-def track_orbit_matrices(start, matrices, apply_fn):
-    """Track orbit using an explicit list of matrices (or any callable maps)."""
+def track_orbit(poly, gens, start, seq):
+    Glist = gens.generators
     z = start
     out = [z]
-    for M in matrices:
-        z = apply_fn(z, M)
+    for idx in seq:
+        M = Glist[idx % len(Glist)]
+        z = gens.apply(z, M)
         out.append(z)
     return np.array(out)
 
 
-def visualize_polygon_mapping(poly, mapped_poly, n_points=100):
-    plt.figure(figsize=(6,6))
-    ax = plt.gca()
-    circle = plt.Circle((0,0), 1, color='k', fill=False, lw=1)
-    ax.add_artist(circle)
-
-    def plot_poly(verts, color, lw):
-        N = len(verts)
-        for i in range(N):
-            z1, z2 = verts[i], verts[(i+1)%N]
-            ax.plot([z1.real, z2.real], [z1.imag, z2.imag], color=color, lw=lw)
-
-    plot_poly(poly.vertices, 'b', 3)       # original polygon in blue
-    plot_poly(mapped_poly, 'r', 1)         # mapped polygon in red
-
-    ax.set_aspect('equal')
-    ax.set_xlim(-1.05, 1.05)
-    ax.set_ylim(-1.05, 1.05)
-    plt.title("Original (blue) and Mapped (red) Polygon")
-    plt.show()
-
-    for i, (z_orig, z_mapped) in enumerate(zip(poly.vertices, mapped_poly)):
-        print(f"Vertex {i}: start = {z_orig}, end = {z_mapped}, |start-end| = {abs(z_orig - z_mapped)}")
+def build_layers(poly, gens, n_layers):
+    Glist = gens.generators
+    layers = [[poly.vertices]]
+    for _ in range(n_layers):
+        prev = layers[-1]
+        nxt = []
+        for M in Glist:
+            Minv = np.linalg.inv(M)
+            for vs in prev:
+                nxt.append([gens.apply(z, M) for z in vs])
+                nxt.append([gens.apply(z, Minv) for z in vs])
+        layers.append(nxt)
+    return layers
 
 
-if __name__ == "__main__":
-    p, q = 8, 8
+def inverse_sequence(seq, p):
+    half = p // 2
+    return [(x + half) % p for x in reversed(seq)]
+
+
+def visualize_sequence(
+    p,
+    q,
+    start_index,
+    seq,
+    name,
+    n_layers=1,
+    marker_color_start='red',
+    marker_color_end='blue',
+    marker_shape_start='o',
+    marker_shape_end='o'
+):
     poly = HyperbolicPolygon(p, q)
     poly.compute_interior_points()
     gens = HyperbolicGenerators(poly)
 
-    # sequences as indices
-    seq_a1 = [6, 3, 0]
-    seq_b1 = [5, 2, 7]
-    seq_a2 = [2, 7, 4]
-    seq_b2 = [1, 6, 3]
+    pts = track_orbit(poly, gens, poly.vertices[start_index], seq)
+    layers = build_layers(poly, gens, n_layers)
 
-    # Build the commutator-style combined sequence with **true inverses**
-    combined_matrices = []
+    poly.visualize(layers[-1], n_points=150)
+    plt.plot(pts.real, pts.imag, '-', lw=2, color='black')
 
-    # a1 b1 a1^-1 b1^-1
-    for idx in seq_a1:
-        combined_matrices.append(gens.generators[idx])
-    for idx in seq_b1:
-        combined_matrices.append(gens.generators[idx])
-    for idx in reversed(seq_a1):
-        combined_matrices.append(np.linalg.inv(gens.generators[idx]))
-    for idx in reversed(seq_b1):
-        combined_matrices.append(np.linalg.inv(gens.generators[idx]))
+    plt.plot(
+        pts[0].real,
+        pts[0].imag,
+        marker_shape_start,
+        markersize=10,
+        color=marker_color_start
+    )
+    plt.plot(
+        pts[-1].real,
+        pts[-1].imag,
+        marker_shape_end,
+        markersize=10,
+        color=marker_color_end
+    )
 
-    # a2 b2 a2^-1 b2^-1
-    for idx in seq_a2:
-        combined_matrices.append(gens.generators[idx])
-    for idx in seq_b2:
-        combined_matrices.append(gens.generators[idx])
-    for idx in reversed(seq_a2):
-        combined_matrices.append(np.linalg.inv(gens.generators[idx]))
-    for idx in reversed(seq_b2):
-        combined_matrices.append(np.linalg.inv(gens.generators[idx]))
+    plt.title(
+        f"{name} at vertex {start_index} and starts at "
+        f"{marker_color_start}, ends at {marker_color_end}"
+    )
+    plt.show()
 
-    # Track a single vertex to see the orbit
-    start_vertex = 0
-    pts = track_orbit_matrices(poly.vertices[start_vertex], combined_matrices, gens.apply)
-    print(f"Vertex {start_vertex}: start = {pts[0]}, end = {pts[-1]}, |start-end| = {abs(pts[0]-pts[-1])}")
 
-    # Map entire polygon
-    mapped_poly = poly.vertices
-    for M in combined_matrices:
-        mapped_poly = [gens.apply(z, M) for z in mapped_poly]
+def compose_sequences(*seqs):
+    combined = []
+    for seq in seqs:
+        combined.extend(seq)
+    return combined
+    
+def visPathPolygon(seq):
+    p, q = 8, 8
+    poly = HyperbolicPolygon(p, q)
+    gens = HyperbolicGenerators(poly)
 
-    # Visualize original vs mapped polygon
-    visualize_polygon_mapping(poly, mapped_poly)
+    journey = [poly.vertices]
+
+    verts = poly.vertices
+    for idx in seq:
+        M = gens.generators[idx]
+        verts = [gens.apply_matrix(z, M) for z in verts]
+        journey.append(verts)
+
+    plt.figure(figsize=(7,7))
+    ax = plt.gca()
+    circle = plt.Circle((0,0), 1, color='k', fill=False, lw=1)
+    ax.add_artist(circle)
+
+    colors = ['b','r','g','m','c','y','k']
+
+    def plot_poly(verts, color):
+        N = len(verts)
+        for i in range(N):
+            z1 = verts[i]
+            z2 = verts[(i+1)%N]
+            c = poly.compute_circle_center(z1, z2)
+            if c is None:
+                ax.plot([z1.real, z2.real], [z1.imag, z2.imag], color=color, lw=2)
+            else:
+                r = abs(z1 - c)
+                t1 = np.angle(z1 - c)
+                t2 = np.angle(z2 - c)
+                d = t2 - t1
+                if d < -np.pi: d += 2*np.pi
+                elif d > np.pi: d -= 2*np.pi
+                th = t1 + np.linspace(0,1,300)*d
+                x = c.real + r*np.cos(th)
+                y = c.imag + r*np.sin(th)
+                ax.plot(x, y, color=color, lw=2)
+
+    for i, verts in enumerate(journey):
+        plot_poly(verts, colors[i % len(colors)])
+
+    ax.set_aspect('equal')
+    ax.set_xlim(-1.05,1.05)
+    ax.set_ylim(-1.05,1.05)
+    plt.show()
+
+
+if __name__ == "__main__":
+    p, q = 8, 8
+    n_layers = 1
+
+    seq_test = [0, 3, 2]
+    visualize_sequence(p, q, start_index=1, seq=seq_test, n_layers=n_layers, name="a1")
+
+    seq_a1 = [2, 7, 4]
+    #visualize_sequence(p, q, start_index=1, seq=seq_a1, n_layers=n_layers, name="a1")
+
+    seq_b1 = [1, 6, 3]
+    #visualize_sequence(p, q, start_index=0, seq=seq_b1, n_layers=n_layers, name="b1")
+
+    a1_inv = [6, 1, 4]
+    #visualize_sequence(p, q, start_index=6, seq=a1_inv, n_layers=n_layers, name="a1_inv")
+
+    b1_inv = [5, 0, 3]
+    #visualize_sequence(p, q, start_index=5, seq=b1_inv, n_layers=n_layers, name="b1_inv")
+
+    seq_a2 = [6, 3, 0]
+    #visualize_sequence(p, q, start_index=5, seq=seq_a2, n_layers=n_layers, name="a2")
+
+    seq_b2 = [5, 2, 7]
+    #visualize_sequence(p, q, start_index=4, seq=seq_b2, n_layers=n_layers, name="b2")
+
+    a2_inv = [2, 5, 0]
+    #visualize_sequence(p, q, start_index=2, seq=a2_inv, n_layers=n_layers, name="a2_inv")
+
+    b2_inv = [1, 4, 7]
+    #visualize_sequence(p, q, start_index=1, seq=b2_inv, n_layers=n_layers, name="b2_inv")
+
+    # what we see as inverses visually
+    combined_seq = compose_sequences(
+        seq_a1, seq_b1, a1_inv, b2_inv, seq_a2, seq_b2, a2_inv, b2_inv
+    )
+    visPathPolygon(combined_seq)
+    #visualize_sequence(p, q, start_index=0, seq=combined_seq, n_layers=n_layers, name="combined_sequence")
+    
+    # Actual inverses
+    combined_seq2 = compose_sequences(
+        seq_a1,
+        seq_b1,
+        inverse_sequence(seq_a1, p),
+        inverse_sequence(seq_b1, p),
+        seq_a2,
+        seq_b2,
+        inverse_sequence(seq_a2, p),
+        inverse_sequence(seq_b2, p)
+    )
+
+    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_2")
+
+    # Inverse that should be identity
+    combined_seq3 = compose_sequences(
+        seq_a1,
+        seq_b1,
+        seq_a2,
+        seq_b2,
+        inverse_sequence(seq_b2, p),
+        inverse_sequence(seq_a2, p),
+        inverse_sequence(seq_b1, p),
+        inverse_sequence(seq_a1, p)
+    )
+
+    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_3")
+
+    # Inverse that should be identity
+    combined_seq4 = compose_sequences(
+        seq_a1,
+        seq_b1,
+        seq_a2,
+        seq_b2,
+        b2_inv,
+        a2_inv,
+        b1_inv,
+        a1_inv
+    )
+
+    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_4")
 

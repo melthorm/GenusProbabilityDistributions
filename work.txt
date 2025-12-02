@@ -58,8 +58,8 @@ map entirity of center 4g gon to other 4g gons
 
 
 
-Talk Title: Tiling the Poincare disk using a 4g gon
+Talk Title: Tiling the Poincare disk using a 4g gon by Mobius Transformations
 
 
 100 words
-Talk Abstract: The Poincare disk is a representation of the hyperbolic plane as a unit disk. A 4g gon embedded in the Poincare disk regardless of its radius, can define generators that when applied are able to tile or 'reach' every point in the poincare disk. We can achieve this via a mobius transformation.
+Talk Abstract: The hyperbolic plane can be represented as a disk in R2 called the Poincaré disk. A genus-g surface can be represented using a regular 4g-gon with paired sides inside that disk. Each side pairing defines a disk-preserving Möbius transformation or generator. Repeatedly applying these generators moves copies of the polygon around that disk without overlap, eventually covering the entire Poincaré disk. These transformations are the deck transformations of the covering map from the disk to the genus-g surface formed by gluing the polygon’s paired sides. This talk constructs those generators, explains how their repeated action tiles the disk, and considers applications to genus-g surfaces.

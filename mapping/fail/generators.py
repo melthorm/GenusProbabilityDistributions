@@ -152,8 +152,8 @@ class HyperbolicGenerators:
         s2 = np.cross([w1.real - w2.real, w1.imag - w2.imag],
                       [m2.real - w2.real, m2.imag - w2.imag])
 
-        #if np.sign(s1) != np.sign(s2):
-        #    M = np.array([[np.conj(a), -b], [-np.conj(b), a]], complex)
+        if np.sign(s1) != np.sign(s2):
+            M = np.array([[np.conj(a), -b], [-np.conj(b), a]], complex)
 
         return M
 
@@ -168,15 +168,4 @@ class HyperbolicGenerators:
 
     def apply_to_polygon(self, M):
         return [self.apply_matrix(z, M) for z in self.poly.vertices]
-
-
-    def apply_word_to_polygon(self, word):
-        verts = self.poly.vertices
-        for idx in word:
-            if idx >= 0:
-                M = self.generators[idx]
-            else:
-                M = np.linalg.inv(self.generators[-idx])
-            verts = [self.apply_matrix(z, M) for z in verts]
-        return verts
 
