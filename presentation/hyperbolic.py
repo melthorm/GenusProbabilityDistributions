@@ -30,4 +30,17 @@ plt.show()
 
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+theta = np.linspace(0, 2*np.pi, 400)
+x = np.cos(theta)
+y = np.sin(theta)
+
+plt.figure(figsize=(6,6))
+plt.plot(x, y, 'k')  # Unit circle
+plt.gca().set_aspect('equal')
+plt.xlim(-1.1, 1.1)
+plt.ylim(-1.1, 1.1)
+plt.show()
 
