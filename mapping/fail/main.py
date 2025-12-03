@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from generators import HyperbolicPolygon, HyperbolicGenerators
-
+import sys
 
 def track_orbit(poly, gens, start, seq):
     Glist = gens.generators
@@ -137,20 +137,17 @@ if __name__ == "__main__":
     p, q = 8, 8
     n_layers = 1
 
-    seq_test = [0, 3, 2]
-    visualize_sequence(p, q, start_index=1, seq=seq_test, n_layers=n_layers, name="a1")
-
     seq_a1 = [2, 7, 4]
-    #visualize_sequence(p, q, start_index=1, seq=seq_a1, n_layers=n_layers, name="a1")
+    visualize_sequence(p, q, start_index=1, seq=seq_a1, n_layers=n_layers, name="a1")
 
     seq_b1 = [1, 6, 3]
-    #visualize_sequence(p, q, start_index=0, seq=seq_b1, n_layers=n_layers, name="b1")
+    visualize_sequence(p, q, start_index=0, seq=seq_b1, n_layers=n_layers, name="b1")
 
     a1_inv = [6, 1, 4]
-    #visualize_sequence(p, q, start_index=6, seq=a1_inv, n_layers=n_layers, name="a1_inv")
+    visualize_sequence(p, q, start_index=6, seq=a1_inv, n_layers=n_layers, name="a1_inv")
 
     b1_inv = [5, 0, 3]
-    #visualize_sequence(p, q, start_index=5, seq=b1_inv, n_layers=n_layers, name="b1_inv")
+    visualize_sequence(p, q, start_index=5, seq=b1_inv, n_layers=n_layers, name="b1_inv")
 
     seq_a2 = [6, 3, 0]
     #visualize_sequence(p, q, start_index=5, seq=seq_a2, n_layers=n_layers, name="a2")
@@ -164,13 +161,34 @@ if __name__ == "__main__":
     b2_inv = [1, 4, 7]
     #visualize_sequence(p, q, start_index=1, seq=b2_inv, n_layers=n_layers, name="b2_inv")
 
+    
+    combined = compose_sequences(
+        seq_a1, seq_b1, inverse_sequence(a1_inv, p), inverse_sequence(b1_inv, p),
+        seq_a2, seq_b2, inverse_sequence(a2_inv, p), inverse_sequence(b2_inv, p)
+    )
+    # 0 is t1, 1 is t2, 2 is t3, 3 is t4, 4 is t1-1, 5 is t2-1, 6 is t3-1, 7 is t4-1
+    
+    # t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1, t3, t4-1, t1-1, t2, t3-1, t4, t1, 
+    # t2-1, t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1
+    
+    # [2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5]
+    visualize_sequence(p, q, start_index=1, seq=combined, n_layers=n_layers, name="b2_inv")
+    print(combined)
+
+    # 0 is a1, 1 is b1, 2 is a2, 3 is b2, 4 is a1-1, 5 is b1-1, 6 is a2-1, 7 is b2-1
+    # 1, 3, 5 b1, b2, b1-1
+    # 1, 7, 6, b1, b2-1 b1-1
+    # 2, 7, 4 is a2 b2-1, a1-1
+    # 0, 3, 6 a1, b2, a2-1
+
     # what we see as inverses visually
     combined_seq = compose_sequences(
         seq_a1, seq_b1, a1_inv, b2_inv, seq_a2, seq_b2, a2_inv, b2_inv
     )
     visPathPolygon(combined_seq)
-    #visualize_sequence(p, q, start_index=0, seq=combined_seq, n_layers=n_layers, name="combined_sequence")
+    visualize_sequence(p, q, start_index=0, seq=combined_seq, n_layers=n_layers, name="combined_sequence")
     
+
     # Actual inverses
     combined_seq2 = compose_sequences(
         seq_a1,
@@ -183,7 +201,7 @@ if __name__ == "__main__":
         inverse_sequence(seq_b2, p)
     )
 
-    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_2")
+    visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_2")
 
     # Inverse that should be identity
     combined_seq3 = compose_sequences(
@@ -196,8 +214,16 @@ if __name__ == "__main__":
         inverse_sequence(seq_b1, p),
         inverse_sequence(seq_a1, p)
     )
-
-    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_3")
+    print(seq_a1)
+    print(seq_b1)
+    print(seq_a2)
+    print(seq_b2)
+    print(inverse_sequence(seq_b2, p))
+    print(inverse_sequence(seq_a2, p))
+    print(inverse_sequence(seq_b1, p))
+    print(inverse_sequence(seq_a1, p))
+    print(combined_seq3)
+    visualize_sequence(p, q, start_index=0, seq=combined_seq3, n_layers=n_layers, name="combined_sequence_3")
 
     # Inverse that should be identity
     combined_seq4 = compose_sequences(
@@ -211,5 +237,5 @@ if __name__ == "__main__":
         a1_inv
     )
 
-    #visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_4")
+    visualize_sequence(p, q, start_index=0, seq=combined_seq4, n_layers=n_layers, name="combined_sequence_4")
 

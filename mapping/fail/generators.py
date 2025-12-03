@@ -98,7 +98,30 @@ class HyperbolicPolygon:
                     thetas = th1 + np.linspace(0,1,n_points)*d
                     x = c.real + r*np.cos(thetas)
                     y = c.imag + r*np.sin(thetas)
+
+
                 ax.plot(x, y, color=color, lw=lw)
+
+        def plot_polygon_circle(verts, color='b', lw=2, n_points=500):
+            N = len(verts)
+            for i in range(N):
+                z1 = verts[i]
+                z2 = verts[(i+1)%N]
+                c = self.compute_circle_center(z1, z2)
+                if c is None:
+                    # Straight line through origin
+                    x = [z1.real, z2.real]
+                    y = [z1.imag, z2.imag]
+                else:
+                    # Full circle orthogonal to unit circle
+                    r = abs(z1 - c)
+                    angles = np.linspace(0, 2*np.pi, n_points)
+                    x = c.real + r * np.cos(angles)
+                    y = c.imag + r * np.sin(angles)
+                   
+
+                ax.plot(x, y, color=color, lw=lw)
+
 
         plot_polygon(self.vertices, color='b', lw=5)
         if transformed_polygons:
