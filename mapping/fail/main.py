@@ -172,7 +172,7 @@ if __name__ == "__main__":
     # t2-1, t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1
     
     # [2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5]
-    visualize_sequence(p, q, start_index=1, seq=combined, n_layers=n_layers, name="b2_inv")
+    visualize_sequence(p, q, start_index=2, seq=combined, n_layers=n_layers, name="b2_inv")
     print(combined)
 
     # 0 is a1, 1 is b1, 2 is a2, 3 is b2, 4 is a1-1, 5 is b1-1, 6 is a2-1, 7 is b2-1
