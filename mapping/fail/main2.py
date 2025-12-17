@@ -7,7 +7,7 @@ def main():
     poly = HyperbolicPolygon(p, q)
     gens = HyperbolicGenerators(poly)
 
-    max_layers = 8
+    max_layers = 4
 
     layers = []
 

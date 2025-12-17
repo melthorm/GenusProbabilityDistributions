@@ -138,16 +138,16 @@ if __name__ == "__main__":
     n_layers = 1
 
     seq_a1 = [2, 7, 4]
-    visualize_sequence(p, q, start_index=1, seq=seq_a1, n_layers=n_layers, name="a1")
+    #visualize_sequence(p, q, start_index=1, seq=seq_a1, n_layers=n_layers, name="a1")
 
     seq_b1 = [1, 6, 3]
-    visualize_sequence(p, q, start_index=0, seq=seq_b1, n_layers=n_layers, name="b1")
+    #visualize_sequence(p, q, start_index=0, seq=seq_b1, n_layers=n_layers, name="b1")
 
     a1_inv = [6, 1, 4]
-    visualize_sequence(p, q, start_index=6, seq=a1_inv, n_layers=n_layers, name="a1_inv")
+    #visualize_sequence(p, q, start_index=6, seq=a1_inv, n_layers=n_layers, name="a1_inv")
 
     b1_inv = [5, 0, 3]
-    visualize_sequence(p, q, start_index=5, seq=b1_inv, n_layers=n_layers, name="b1_inv")
+    #visualize_sequence(p, q, start_index=5, seq=b1_inv, n_layers=n_layers, name="b1_inv")
 
     seq_a2 = [6, 3, 0]
     #visualize_sequence(p, q, start_index=5, seq=seq_a2, n_layers=n_layers, name="a2")
@@ -171,71 +171,48 @@ if __name__ == "__main__":
     # t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1, t3, t4-1, t1-1, t2, t3-1, t4, t1, 
     # t2-1, t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1
     
-    # [2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5]
-    visualize_sequence(p, q, start_index=2, seq=combined, n_layers=n_layers, name="b2_inv")
-    print(combined)
-
-    # 0 is a1, 1 is b1, 2 is a2, 3 is b2, 4 is a1-1, 5 is b1-1, 6 is a2-1, 7 is b2-1
-    # 1, 3, 5 b1, b2, b1-1
-    # 1, 7, 6, b1, b2-1 b1-1
-    # 2, 7, 4 is a2 b2-1, a1-1
-    # 0, 3, 6 a1, b2, a2-1
-
-    # what we see as inverses visually
-    combined_seq = compose_sequences(
-        seq_a1, seq_b1, a1_inv, b2_inv, seq_a2, seq_b2, a2_inv, b2_inv
-    )
-    visPathPolygon(combined_seq)
-    visualize_sequence(p, q, start_index=0, seq=combined_seq, n_layers=n_layers, name="combined_sequence")
+    #t3, t4-1, t1-1, t2, t3-1, t4, t1, t2-1
     
+    # [2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5, 2, 7, 4, 1, 6, 3, 0, 5]
+    newCombined = [2, 7, 4, 1, 6, 3, 0, 5]
+    newCombined = [0, 5, 2, 7, 4, 1, 6, 3]
+    print(f"8 gon identity commutator: {newCombined}")
+    visualize_sequence(p, q, start_index=3, seq=newCombined, n_layers=n_layers, name="8 gon identity")
 
-    # Actual inverses
-    combined_seq2 = compose_sequences(
-        seq_a1,
-        seq_b1,
-        inverse_sequence(seq_a1, p),
-        inverse_sequence(seq_b1, p),
-        seq_a2,
-        seq_b2,
-        inverse_sequence(seq_a2, p),
-        inverse_sequence(seq_b2, p)
+
+    p, q = 12, 12
+    # 0 is t0, 1 is t1, 2 is t2... 6 is t0-1, 7 t1-1, 8 is t2-1... 11 is t5-1
+    
+    seq_a1_2 = [0, 5, 10]
+    seq_b1_2 = [3, 8, 1]
+    seq_c1_2 = [6, 11, 4]
+    seq_d1_2 = [9, 2, 7]
+    combined2 = compose_sequences(
+        seq_a1_2, seq_b1_2, seq_c1_2, seq_d1_2
     )
-
-    visualize_sequence(p, q, start_index=0, seq=combined_seq2, n_layers=n_layers, name="combined_sequence_2")
-
-    # Inverse that should be identity
-    combined_seq3 = compose_sequences(
-        seq_a1,
-        seq_b1,
-        seq_a2,
-        seq_b2,
-        inverse_sequence(seq_b2, p),
-        inverse_sequence(seq_a2, p),
-        inverse_sequence(seq_b1, p),
-        inverse_sequence(seq_a1, p)
+    print(f"12 gon identity commutator {combined2}")
+    visualize_sequence(p, q, start_index = 6, seq = combined2, n_layers = n_layers, name = "12 gon identity")
+    
+    # [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7]
+    # t0, t5, t4-1, t3, t2-1, t1, t0-1, t5-1, t4, t3-1, t2, t1-1
+    
+    p, q = 16, 16
+    
+    seq_a1_3 = [0, 7, 14]
+    seq_a2_3 = [5, 12, 3]
+    seq_a3_3 = [10, 1, 8]
+    seq_a4_3 = [15, 6, 13]
+    seq_a5_3 = [4, 11, 2]
+    seq_a6_3 = [9]
+    
+    # t0, t7, t6-1, t5, t4-1, t3, t2-1, t1, t0-1, t7-1, t6, t5-1, t4, t3-1, t2, t1-1 
+    
+    combined3 = compose_sequences(
+        seq_a1_3, seq_a2_3, seq_a3_3, seq_a4_3, seq_a5_3, seq_a6_3
     )
-    print(seq_a1)
-    print(seq_b1)
-    print(seq_a2)
-    print(seq_b2)
-    print(inverse_sequence(seq_b2, p))
-    print(inverse_sequence(seq_a2, p))
-    print(inverse_sequence(seq_b1, p))
-    print(inverse_sequence(seq_a1, p))
-    print(combined_seq3)
-    visualize_sequence(p, q, start_index=0, seq=combined_seq3, n_layers=n_layers, name="combined_sequence_3")
-
-    # Inverse that should be identity
-    combined_seq4 = compose_sequences(
-        seq_a1,
-        seq_b1,
-        seq_a2,
-        seq_b2,
-        b2_inv,
-        a2_inv,
-        b1_inv,
-        a1_inv
-    )
-
-    visualize_sequence(p, q, start_index=0, seq=combined_seq4, n_layers=n_layers, name="combined_sequence_4")
-
+    visualize_sequence(p, q, start_index = 5, seq = combined3, n_layers = n_layers, name = "16 gon identity")
+    
+    
+    trustCombined = [0, 7, 14]
+    
+    
